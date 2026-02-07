@@ -1,0 +1,137 @@
+{
+  "kind": "build_request",
+  "title": "Initialize EPIQ Wallet: manual wallet creation (up to 9) with address + private key + recovery phrase",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Add backend support for EPIQ Wallets in EPIQ Life: persist up to 9 wallets per user (by caller Principal), each wallet containing at minimum: walletId/index, label (optional), createdAt timestamp, public address, and any metadata needed to support listing and later reference.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Let's also add the ability for members to add up to 9 wallets if they wanted",
+          "Support up to 9 member wallets per account within EPIQ Life (user-created; no automatic wallet provisioning on enrollment)"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A caller can create multiple wallets and retrieve a list of their wallets from the backend.",
+        "The backend enforces a hard limit of 9 wallets per caller (attempting to create a 10th returns a clear error).",
+        "Wallet data is scoped to the caller; users cannot read other users’ wallet lists."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Implement backend wallet credential generation for a user-initiated 'Create Wallet' action that generates: (1) a public wallet address, (2) a private key, and (3) a recovery seed phrase (mnemonic). Ensure generation uses secure randomness available on the Internet Computer and is not derived from predictable inputs (e.g., time-only).",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "NO automatic wallet setup. The user should do this themselves",
+          "Once the wallet system is confirmed working (address + keypair + seed phrase generation)"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Calling the create-wallet method returns address + private key + recovery phrase for the newly created wallet.",
+        "Two wallets created by the same user produce different credentials (non-deterministic generation).",
+        "Wallet creation is only possible for authenticated users (standard user permission)."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Ensure wallet creation is strictly manual: do not auto-provision any wallet during enrollment, profile creation, login, or Firebase sync. Wallets are created only when the user explicitly triggers the create action in the UI.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "NO automatic wallet setup. The user should do this themselves so they can properly document and safely store credentials.",
+          "the user should setup their own wallet after successful enrollment onto EPIQ Life. That way they can generate their wallet address, key, phrases when they're ready and store them safely."
+        ]
+      },
+      "acceptanceCriteria": [
+        "A newly enrolled user has zero wallets until they manually create one.",
+        "No backend code path creates a wallet implicitly during any authentication or profile-save flow.",
+        "UI does not prompt for wallet creation until after the user is in the app (e.g., on the Wallet tab) and only proceeds after explicit user confirmation."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add frontend UI for EPIQ Wallet management (in/under the existing wallet area): display a list of the user’s EPIQ wallets (up to 9), and provide a 'Create Wallet' flow that shows the generated address, private key, and recovery phrase exactly once with strong warnings and a required acknowledgment checkbox before closing.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Initialized EPIQ Wallet functionality",
+          "which means it issues address, key, and key phrase"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Wallet UI shows an empty state when the user has no wallets, with a clear 'Create Wallet' primary action.",
+        "When a wallet is created, the UI displays address, private key, and seed phrase once in the success view, along with copy-to-clipboard controls.",
+        "The UI requires the user to confirm they have stored the credentials before allowing them to dismiss/complete the flow.",
+        "After dismissal, the seed phrase and private key are no longer retrievable from standard 'list wallets' views (only the public address and metadata remain visible)."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Integrate frontend data fetching/mutations for EPIQ Wallets using React Query (new query hooks and mutations) and backend actor calls, including cache invalidation so that creating a wallet immediately updates the wallet list in the UI.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Now please proceed with initializing EPIQ Wallet functionality."
+        ]
+      },
+      "acceptanceCriteria": [
+        "There is a React Query query to fetch the caller’s wallet list and a mutation to create a wallet.",
+        "On successful wallet creation, the wallet list query is invalidated/refetched and the new wallet appears in the list.",
+        "Error states (backend not ready, permission error, limit reached) are shown to the user in English with actionable next steps."
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Add a minimal in-app Phase 1 Testing Plan page/section (read-only) that lists the Phase 1 tests for dual authentication (Internet Identity + EPIQ Shield/Firebase), session transitions, user sync, and duplicate prevention, to be executed after wallet functionality is confirmed working.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Then once EPIQ Wallet functionality is confirmed functional... THEN we proceed with Phase 1 testing."
+        ]
+      },
+      "acceptanceCriteria": [
+        "The app includes a visible (admin-only or clearly labeled) read-only checklist page/section describing the Phase 1 tests in English.",
+        "The checklist covers: dual auth verification, data consistency, session transition validation, and auto-mapping confirmation (no duplicates).",
+        "This page/section does not block normal usage and does not attempt to automatically run tests."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not auto-create Wallet #1 (or any wallet) during enrollment; wallet creation must be user-initiated only.",
+    "Support a maximum of 9 wallets per member account.",
+    "Wallet generation and any secret material handling must occur within EPIQ Life only; do not involve or reference EPIQ Treasury logic.",
+    "Do not edit files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT.",
+    "Use English for any user-facing UI text."
+  ],
+  "nonGoals": [
+    "Implementing real on-chain token minting, transfers, or balance reads for EPQ/EPC.",
+    "Integrating external wallet providers, browser extensions, or third-party key management.",
+    "Adding WebSockets/push notifications/real-time updates for wallet changes.",
+    "Building EPIQ Treasury features or any cross-service secret sharing."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

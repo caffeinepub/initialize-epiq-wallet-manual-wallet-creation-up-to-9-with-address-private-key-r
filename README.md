@@ -1,2 +1,3 @@
-# initialize-epiq-wallet-manual-wallet-creation-up-to-9-with-address-private-key-r
-Exported from Caffeine project: Initialize EPIQ Wallet: manual wallet creation (up to 9) with address + private key + recovery phrase
+## 
+
+To run app build and run docker image: `docker build -t app . docker run -it --network host app`
