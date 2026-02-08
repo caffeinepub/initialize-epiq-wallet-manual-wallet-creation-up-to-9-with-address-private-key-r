@@ -10,30 +10,41 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Search, Filter, Download, Trash2, CheckCircle2, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { Principal } from '@icp-sdk/core/principal';
 
 export default function SecurityAuditLogTab() {
   const [filterType, setFilterType] = useState<'all' | 'principal' | 'epiqId' | 'method' | 'status'>('all');
   const [filterValue, setFilterValue] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState<Principal | string | null>(null);
 
   const { data: allLogs, isLoading: allLoading, refetch: refetchAll } = useGetAuthenticationAuditLog();
   const { data: principalLogs, isLoading: principalLoading } = useGetAuthenticationAuditLogByPrincipal(
-    filterType === 'principal' ? searchQuery : null
+    filterType === 'principal' && searchQuery instanceof Principal ? searchQuery : null
   );
   const { data: epiqIdLogs, isLoading: epiqIdLoading } = useGetAuthenticationAuditLogByEpiqId(
-    filterType === 'epiqId' ? searchQuery : null
+    filterType === 'epiqId' && typeof searchQuery === 'string' ? searchQuery : null
   );
   const { data: methodLogs, isLoading: methodLoading } = useGetAuthenticationAuditLogByMethod(
-    filterType === 'method' ? searchQuery : null
+    filterType === 'method' && typeof searchQuery === 'string' ? searchQuery : null
   );
   const { data: statusLogs, isLoading: statusLoading } = useGetAuthenticationAuditLogByStatus(
-    filterType === 'status' ? searchQuery : null
+    filterType === 'status' && typeof searchQuery === 'string' ? searchQuery : null
   );
 
   const cleanupMutation = useCleanupExpiredSessions();
 
   const handleSearch = () => {
-    setSearchQuery(filterValue);
+    if (filterType === 'principal') {
+      try {
+        const principal = Principal.fromText(filterValue);
+        setSearchQuery(principal);
+      } catch (error) {
+        console.error('Invalid Principal ID:', error);
+        alert('Invalid Principal ID format');
+      }
+    } else {
+      setSearchQuery(filterValue);
+    }
   };
 
   const handleCleanup = async () => {
@@ -245,22 +256,34 @@ export default function SecurityAuditLogTab() {
                 <TableBody>
                   {logs.map((log, index) => (
                     <TableRow key={index}>
-                      <TableCell className="font-mono text-xs">
+                      <TableCell>
                         <div className="flex items-center gap-2">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          {new Date(Number(log.timestamp) / 1_000_000).toLocaleString()}
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {new Date(Number(log.timestamp) / 1_000_000).toLocaleString()}
+                          </span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {log.principalId.toString().substring(0, 20)}...
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {log.principalId.toString().slice(0, 12)}...
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-sm">
-                        {log.epiqId || <span className="text-muted-foreground">N/A</span>}
+                      <TableCell>
+                        {log.epiqId ? (
+                          <span className="text-sm">{log.epiqId}</span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">N/A</span>
+                        )}
                       </TableCell>
                       <TableCell>{getMethodBadge(log.authMethod)}</TableCell>
                       <TableCell>{getStatusBadge(log.status)}</TableCell>
-                      <TableCell className="text-sm">
-                        {log.failureReason || <span className="text-muted-foreground">N/A</span>}
+                      <TableCell>
+                        {log.failureReason ? (
+                          <span className="text-sm text-destructive">{log.failureReason}</span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

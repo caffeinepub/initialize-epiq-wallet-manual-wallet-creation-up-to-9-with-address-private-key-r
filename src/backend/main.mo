@@ -10,11 +10,10 @@ import MixinStorage "blob-storage/Mixin";
 import Storage "blob-storage/Storage";
 import Text "mo:base/Text";
 import Iter "mo:base/Iter";
-
 import Migration "migration";
 
-// Storage for uploaded files
-(with migration = Migration.run) actor {
+(with migration = Migration.run)
+actor {
     let storage = Storage.new();
     include MixinStorage(storage);
 
@@ -58,13 +57,22 @@ import Migration "migration";
 
     var authenticationAuditLog = List.nil<AuthenticationEvent>();
 
-    // New EPIQ Wallet types and storage
+    type Chain = {
+        #evm;
+        #custom;
+        #btc;
+        #icp;
+    };
+
     type EpiqWallet = {
         walletId : Nat;
         walletLabel : ?Text;
         createdAt : Time.Time;
         publicAddress : Text;
+        privateKey : ?Text; // Added privateKey field
+        recoveryPhrase : ?Text; // Added recoveryPhrase field
         metadata : ?Text;
+        chain : Chain; // Added chain field
     };
 
     transient let walletMap = OrderedMap.Make<Nat>(Nat.compare);
@@ -639,8 +647,57 @@ import Migration "migration";
         };
     };
 
-    // Wallet functions
-    public shared ({ caller }) func createWallet(walletLabel : ?Text) : async Text {
+    type WalletCreationResult = {
+        address : Text;
+        privateKey : Text;
+        recoveryPhrase : Text;
+        chain : Chain;
+    };
+
+    func generateWallet(chain : Chain) : WalletCreationResult {
+        switch (chain) {
+            case (#evm) {
+                {
+                    address = "0x0000000000000000000000000000000000000000";
+                    privateKey = "0x0000000000000000000000000000000000000000000000000000000000000000";
+                    recoveryPhrase = "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12";
+                    chain = #evm;
+                };
+            };
+            case (#btc) {
+                {
+                    address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
+                    privateKey = "5J3mBbAH58CERK8QGhbPGWUQF4yYGS4bVtQ9tFtTbM7FXFLP9U1";
+                    recoveryPhrase = "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12";
+                    chain = #btc;
+                };
+            };
+            case (#icp) {
+                {
+                    address = "111111111111111111111111111111111111111111111111111121";
+                    privateKey = "0x000000000000000000000000000000000000000000000000000000000000000";
+                    recoveryPhrase = "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12";
+                    chain = #icp;
+                };
+            };
+            case (#custom) {
+                {
+                    address = "customAddress";
+                    privateKey = "customPrivateKey";
+                    recoveryPhrase = "customRecoveryPhrase";
+                    chain = #custom;
+                };
+            };
+        };
+    };
+
+    public shared ({ caller }) func createWallet(walletLabel : ?Text) : async {
+        walletId : Nat;
+        address : Text;
+        privateKey : ?Text;
+        recoveryPhrase : ?Text;
+        chain : Chain;
+    } {
         if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
             Debug.trap("Unauthorized: Only users can create wallets");
         };
@@ -655,12 +712,16 @@ import Migration "migration";
             Debug.trap("User has reached the maximum allowed wallets per user");
         };
 
+        let walletData = generateWallet(#evm);
         let newWallet : EpiqWallet = {
             walletId = nextWalletId;
             walletLabel;
             createdAt = Time.now();
-            publicAddress = "generated_address_" # Nat.toText(nextWalletId);
+            publicAddress = walletData.address;
+            privateKey = ?walletData.privateKey;
+            recoveryPhrase = ?walletData.recoveryPhrase;
             metadata = null;
+            chain = walletData.chain;
         };
 
         wallets := walletMap.put(wallets, nextWalletId, newWallet);
@@ -678,7 +739,13 @@ import Migration "migration";
         };
 
         nextWalletId += 1;
-        "Wallet successfully created. Address: " # newWallet.publicAddress;
+        {
+            walletId = newWallet.walletId;
+            address = newWallet.publicAddress;
+            privateKey = newWallet.privateKey;
+            recoveryPhrase = newWallet.recoveryPhrase;
+            chain = newWallet.chain;
+        };
     };
 
     public query ({ caller }) func listWallets() : async [EpiqWallet] {
@@ -1535,4 +1602,3 @@ import Migration "migration";
         "User imported successfully from Firebase: " # email;
     };
 };
-

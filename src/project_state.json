@@ -1,14 +1,17 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 3,
+  "projectStateVersion": 5,
   "summary": "EPIQ Life member platform with dual authentication (Internet Identity + Firebase/EPIQ Shield) and an EPIQ Wallet module created and managed entirely within EPIQ Life, with strict separation from EPIQ Treasury and on-chain balances as the source of truth.",
   "architectural_notes": [
     "EPIQ Wallet key/seed/address generation and signing occur only in EPIQ Life; EPIQ Treasury must never generate/store/handle user private keys or seed phrases.",
     "On-chain DAO canister(s) are the source of truth for EPQ/EPC balances; Life and Treasury independently query balances read-only (no balance push sync).",
-    "Transaction flow separation: users sign transactions in EPIQ Life; Treasury signs only its own admin/multisig transactions; systems exchange only public wallet addresses and read-only balance data."
+    "Transaction flow separation: users sign transactions in EPIQ Life; Treasury signs only its own admin/multisig transactions; systems exchange only public wallet addresses and read-only balance data.",
+    "Design wallet generation as a chain-agnostic core (seed/private key handling) with pluggable chain adapters for address derivation/encoding (e.g., EVM 0x), so additional chains/custom chain support can be added without rewriting core wallet creation."
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Wallet address generation is currently a placeholder (e.g., generated_address_0 / generated_address_1) rather than a real, externally usable address (e.g., EVM 0x) suitable for third-party wallets like MetaMask."
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
       "id": "feature-ensure-wallet-creation-is-strictly-manual-do-not-auto-provision-any-wallet-during-enrollment-profile-creation-login-or-firebase-sync-wallets-are-created-only-when-the-user-explicitly-triggers-the-create-action-in-the-ui",
@@ -39,6 +42,22 @@
       "title": "Add a minimal in-app Phase 1 Testing Plan page/section (read-only) that lists the Phase 1 tests for dual authentication (Internet Identity + EPIQ Shield/Firebase), session transitions, user sync, and duplicate prevention, to be executed after wallet functionality is confirmed working.",
       "reqIds": [
         "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-replace-placeholder-wallet-address-generation-with-real-evm-compatible-address-derivation-metamask-importable-produced-on-the-backend-during-the-user-initiated-create-wallet-action-and-return-the-generated-credentials-address-private-key-recovery-phrase-to-the-frontend-exactly-once",
+      "title": "Replace placeholder wallet-address generation with real EVM-compatible address derivation (MetaMask-importable) produced on the backend during the user-initiated Create Wallet action, and return the generated credentials (address, private key, recovery phrase) to the frontend exactly once.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-frontend-epiq-wallet-create-flow-to-consume-structured-create-wallet-results-address-privatekey-seedphrase-chain-from-the-backend-rather-than-parsing-a-message-string-and-generating-mock-credentials-client-side",
+      "title": "Update the frontend EPIQ Wallet create flow to consume structured Create Wallet results (address/privateKey/seedPhrase/chain) from the backend rather than parsing a message string and generating mock credentials client-side.",
+      "reqIds": [
+        "REQ-9"
       ],
       "version": 1
     }
@@ -75,6 +94,20 @@
       "summary": "Implement backend wallet credential generation for a user-initiated 'Create Wallet' action that generates: (1) a public wallet address, (2) a private key, and (3) a recovery seed phrase (mnemonic). Ensure generation uses secure randomness available on the Internet Computer and is not derived from predictable inputs (e.g., time-only).",
       "reqIds": [
         "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Make wallet generation scalable for future multi-chain compatibility (pluggable key/address derivation per chain, starting with valid EVM/MetaMask-compatible 0x addresses, with an extensible architecture to add other chains or a custom chain later)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Refactor wallet generation logic to be chain-pluggable and future-proof for adding other chains (and a potential custom chain) by introducing a backend-level chain abstraction for key/address derivation while keeping EVM as the default initial implementation.",
+      "reqIds": [
+        "REQ-8"
       ],
       "status": "pending"
     }

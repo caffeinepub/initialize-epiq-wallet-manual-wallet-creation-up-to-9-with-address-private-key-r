@@ -170,7 +170,10 @@ export interface FirebaseAuthResponse {
 export interface EpiqWallet {
     publicAddress: string;
     metadata?: string;
+    chain: Chain;
     createdAt: Time;
+    privateKey?: string;
+    recoveryPhrase?: string;
     walletLabel?: string;
     walletId: bigint;
 }
@@ -263,6 +266,12 @@ export interface UserProfile {
     btcWalletAddress: string;
     ethWalletAddress: string;
 }
+export enum Chain {
+    btc = "btc",
+    evm = "evm",
+    icp = "icp",
+    custom = "custom"
+}
 export enum MemberType {
     member = "member",
     trustee = "trustee",
@@ -293,7 +302,13 @@ export interface backendInterface {
     createCourseWithModules(title: string, description: string, category: string, modules: Array<CourseModuleWithQuestions>, reward: bigint, availableToAll: boolean, assignedMemberTypes: Array<MemberType>): Promise<bigint>;
     createQuest(title: string, description: string, category: string, steps: Array<string>): Promise<bigint>;
     createTransaction(to: Principal, amount: bigint, currency: string): Promise<bigint>;
-    createWallet(walletLabel: string | null): Promise<string>;
+    createWallet(walletLabel: string | null): Promise<{
+        chain: Chain;
+        privateKey?: string;
+        address: string;
+        recoveryPhrase?: string;
+        walletId: bigint;
+    }>;
     findUserByDisplayName(displayName: string): Promise<Principal>;
     getAllCourseModules(): Promise<Array<CourseModule>>;
     getAllCourses(): Promise<Array<CourseWithModules>>;
@@ -350,7 +365,7 @@ export interface backendInterface {
     updateUserMemberType(user: Principal, memberType: string): Promise<void>;
     updateWalletLabel(walletId: bigint, newLabel: string | null): Promise<void>;
 }
-import type { AuthenticationEvent as _AuthenticationEvent, CourseModuleContent as _CourseModuleContent, CourseModuleWithQuestions as _CourseModuleWithQuestions, CourseWithModules as _CourseWithModules, EpiqWallet as _EpiqWallet, FirebaseAuthResponse as _FirebaseAuthResponse, MemberType as _MemberType, QuestModule as _QuestModule, QuestStep as _QuestStep, QuizQuestion as _QuizQuestion, Time as _Time, Transaction as _Transaction, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
+import type { AuthenticationEvent as _AuthenticationEvent, Chain as _Chain, CourseModuleContent as _CourseModuleContent, CourseModuleWithQuestions as _CourseModuleWithQuestions, CourseWithModules as _CourseWithModules, EpiqWallet as _EpiqWallet, FirebaseAuthResponse as _FirebaseAuthResponse, MemberType as _MemberType, QuestModule as _QuestModule, QuestStep as _QuestStep, QuizQuestion as _QuizQuestion, Time as _Time, Transaction as _Transaction, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _caffeineStorageBlobIsLive(arg0: Uint8Array): Promise<boolean> {
@@ -535,18 +550,24 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async createWallet(arg0: string | null): Promise<string> {
+    async createWallet(arg0: string | null): Promise<{
+        chain: Chain;
+        privateKey?: string;
+        address: string;
+        recoveryPhrase?: string;
+        walletId: bigint;
+    }> {
         if (this.processError) {
             try {
                 const result = await this.actor.createWallet(to_candid_opt_n24(this._uploadFile, this._downloadFile, arg0));
-                return result;
+                return from_candid_record_n25(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.createWallet(to_candid_opt_n24(this._uploadFile, this._downloadFile, arg0));
-            return result;
+            return from_candid_record_n25(this._uploadFile, this._downloadFile, result);
         }
     }
     async findUserByDisplayName(arg0: string): Promise<Principal> {
@@ -581,14 +602,14 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getAllCourses();
-                return from_candid_vec_n25(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAllCourses();
-            return from_candid_vec_n25(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
         }
     }
     async getAllMessages(): Promise<Array<Message>> {
@@ -609,14 +630,14 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getAllQuestModules();
-                return from_candid_vec_n37(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n40(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAllQuestModules();
-            return from_candid_vec_n37(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n40(this._uploadFile, this._downloadFile, result);
         }
     }
     async getAllQuests(): Promise<Array<Quest>> {
@@ -693,70 +714,70 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getAuthenticationAuditLog();
-                return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n46(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAuthenticationAuditLog();
-            return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n46(this._uploadFile, this._downloadFile, result);
         }
     }
     async getAuthenticationAuditLogByEpiqId(arg0: string): Promise<Array<AuthenticationEvent>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getAuthenticationAuditLogByEpiqId(arg0);
-                return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n46(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAuthenticationAuditLogByEpiqId(arg0);
-            return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n46(this._uploadFile, this._downloadFile, result);
         }
     }
     async getAuthenticationAuditLogByMethod(arg0: string): Promise<Array<AuthenticationEvent>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getAuthenticationAuditLogByMethod(arg0);
-                return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n46(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAuthenticationAuditLogByMethod(arg0);
-            return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n46(this._uploadFile, this._downloadFile, result);
         }
     }
     async getAuthenticationAuditLogByPrincipal(arg0: Principal): Promise<Array<AuthenticationEvent>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getAuthenticationAuditLogByPrincipal(arg0);
-                return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n46(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAuthenticationAuditLogByPrincipal(arg0);
-            return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n46(this._uploadFile, this._downloadFile, result);
         }
     }
     async getAuthenticationAuditLogByStatus(arg0: string): Promise<Array<AuthenticationEvent>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getAuthenticationAuditLogByStatus(arg0);
-                return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n46(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAuthenticationAuditLogByStatus(arg0);
-            return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n46(this._uploadFile, this._downloadFile, result);
         }
     }
     async getBtcBalance(arg0: string): Promise<string> {
@@ -791,28 +812,28 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserProfile();
-                return from_candid_opt_n46(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n49(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserProfile();
-            return from_candid_opt_n46(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n49(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCallerUserRole(): Promise<UserRole> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole_n47(this._uploadFile, this._downloadFile, result);
+                return from_candid_UserRole_n50(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole_n47(this._uploadFile, this._downloadFile, result);
+            return from_candid_UserRole_n50(this._uploadFile, this._downloadFile, result);
         }
     }
     async getDisplayNameChangeHistory(): Promise<Array<DisplayNameChangeHistory>> {
@@ -959,14 +980,14 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getTransaction(arg0);
-                return from_candid_opt_n49(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n52(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getTransaction(arg0);
-            return from_candid_opt_n49(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n52(this._uploadFile, this._downloadFile, result);
         }
     }
     async getUserCourseProgress(arg0: Principal): Promise<Array<CourseProgress>> {
@@ -1001,14 +1022,14 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getUserProfile(arg0);
-                return from_candid_opt_n46(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n49(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getUserProfile(arg0);
-            return from_candid_opt_n46(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n49(this._uploadFile, this._downloadFile, result);
         }
     }
     async getUserQuestProgress(arg0: Principal): Promise<Array<QuestProgress>> {
@@ -1057,14 +1078,14 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getWallet(arg0);
-                return from_candid_EpiqWallet_n50(this._uploadFile, this._downloadFile, result);
+                return from_candid_EpiqWallet_n53(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getWallet(arg0);
-            return from_candid_EpiqWallet_n50(this._uploadFile, this._downloadFile, result);
+            return from_candid_EpiqWallet_n53(this._uploadFile, this._downloadFile, result);
         }
     }
     async hasValidFirebaseSession(): Promise<boolean> {
@@ -1127,14 +1148,14 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.listWallets();
-                return from_candid_vec_n52(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n55(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.listWallets();
-            return from_candid_vec_n52(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n55(this._uploadFile, this._downloadFile, result);
         }
     }
     async logoutFirebaseSession(): Promise<void> {
@@ -1320,35 +1341,38 @@ export class Backend implements backendInterface {
         }
     }
 }
-function from_candid_AuthenticationEvent_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _AuthenticationEvent): AuthenticationEvent {
-    return from_candid_record_n45(_uploadFile, _downloadFile, value);
+function from_candid_AuthenticationEvent_n47(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _AuthenticationEvent): AuthenticationEvent {
+    return from_candid_record_n48(_uploadFile, _downloadFile, value);
 }
-function from_candid_CourseModuleContent_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CourseModuleContent): CourseModuleContent {
-    return from_candid_record_n35(_uploadFile, _downloadFile, value);
+function from_candid_Chain_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Chain): Chain {
+    return from_candid_variant_n27(_uploadFile, _downloadFile, value);
 }
-function from_candid_CourseModuleWithQuestions_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CourseModuleWithQuestions): CourseModuleWithQuestions {
-    return from_candid_record_n33(_uploadFile, _downloadFile, value);
+function from_candid_CourseModuleContent_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CourseModuleContent): CourseModuleContent {
+    return from_candid_record_n38(_uploadFile, _downloadFile, value);
 }
-function from_candid_CourseWithModules_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CourseWithModules): CourseWithModules {
-    return from_candid_record_n27(_uploadFile, _downloadFile, value);
+function from_candid_CourseModuleWithQuestions_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CourseModuleWithQuestions): CourseModuleWithQuestions {
+    return from_candid_record_n36(_uploadFile, _downloadFile, value);
 }
-function from_candid_EpiqWallet_n50(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _EpiqWallet): EpiqWallet {
-    return from_candid_record_n51(_uploadFile, _downloadFile, value);
+function from_candid_CourseWithModules_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CourseWithModules): CourseWithModules {
+    return from_candid_record_n30(_uploadFile, _downloadFile, value);
+}
+function from_candid_EpiqWallet_n53(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _EpiqWallet): EpiqWallet {
+    return from_candid_record_n54(_uploadFile, _downloadFile, value);
 }
 function from_candid_FirebaseAuthResponse_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _FirebaseAuthResponse): FirebaseAuthResponse {
     return from_candid_record_n11(_uploadFile, _downloadFile, value);
 }
-function from_candid_MemberType_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _MemberType): MemberType {
-    return from_candid_variant_n30(_uploadFile, _downloadFile, value);
+function from_candid_MemberType_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _MemberType): MemberType {
+    return from_candid_variant_n33(_uploadFile, _downloadFile, value);
 }
-function from_candid_QuestModule_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _QuestModule): QuestModule {
-    return from_candid_record_n39(_uploadFile, _downloadFile, value);
-}
-function from_candid_QuestStep_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _QuestStep): QuestStep {
+function from_candid_QuestModule_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _QuestModule): QuestModule {
     return from_candid_record_n42(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n47(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n48(_uploadFile, _downloadFile, value);
+function from_candid_QuestStep_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _QuestStep): QuestStep {
+    return from_candid_record_n45(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserRole_n50(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n51(_uploadFile, _downloadFile, value);
 }
 function from_candid__CaffeineStorageRefillResult_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: __CaffeineStorageRefillResult): _CaffeineStorageRefillResult {
     return from_candid_record_n5(_uploadFile, _downloadFile, value);
@@ -1362,13 +1386,13 @@ function from_candid_opt_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
 function from_candid_opt_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [Principal]): Principal | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [Array<_QuizQuestion>]): Array<QuizQuestion> | null {
+function from_candid_opt_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [Array<_QuizQuestion>]): Array<QuizQuestion> | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
+function from_candid_opt_n49(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n49(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Transaction]): Transaction | null {
+function from_candid_opt_n52(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Transaction]): Transaction | null {
     return value.length === 0 ? null : value[0];
 }
 function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [boolean]): boolean | null {
@@ -1410,7 +1434,28 @@ function from_candid_record_n11(_uploadFile: (file: ExternalBlob) => Promise<Uin
         principalId: record_opt_to_undefined(from_candid_opt_n14(_uploadFile, _downloadFile, value.principalId))
     };
 }
-function from_candid_record_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    chain: _Chain;
+    privateKey: [] | [string];
+    address: string;
+    recoveryPhrase: [] | [string];
+    walletId: bigint;
+}): {
+    chain: Chain;
+    privateKey?: string;
+    address: string;
+    recoveryPhrase?: string;
+    walletId: bigint;
+} {
+    return {
+        chain: from_candid_Chain_n26(_uploadFile, _downloadFile, value.chain),
+        privateKey: record_opt_to_undefined(from_candid_opt_n12(_uploadFile, _downloadFile, value.privateKey)),
+        address: value.address,
+        recoveryPhrase: record_opt_to_undefined(from_candid_opt_n12(_uploadFile, _downloadFile, value.recoveryPhrase)),
+        walletId: value.walletId
+    };
+}
+function from_candid_record_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;
     reward: bigint;
     title: string;
@@ -1435,12 +1480,12 @@ function from_candid_record_n27(_uploadFile: (file: ExternalBlob) => Promise<Uin
         title: value.title,
         availableToAll: value.availableToAll,
         description: value.description,
-        assignedMemberTypes: from_candid_vec_n28(_uploadFile, _downloadFile, value.assignedMemberTypes),
+        assignedMemberTypes: from_candid_vec_n31(_uploadFile, _downloadFile, value.assignedMemberTypes),
         category: value.category,
-        modules: from_candid_vec_n31(_uploadFile, _downloadFile, value.modules)
+        modules: from_candid_vec_n34(_uploadFile, _downloadFile, value.modules)
     };
 }
-function from_candid_record_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;
     title: string;
     content: _CourseModuleContent;
@@ -1456,12 +1501,12 @@ function from_candid_record_n33(_uploadFile: (file: ExternalBlob) => Promise<Uin
     return {
         id: value.id,
         title: value.title,
-        content: from_candid_CourseModuleContent_n34(_uploadFile, _downloadFile, value.content),
+        content: from_candid_CourseModuleContent_n37(_uploadFile, _downloadFile, value.content),
         description: value.description,
         questions: value.questions
     };
 }
-function from_candid_record_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     doStep: [] | [Array<_QuizQuestion>];
     show: [] | [string];
     tell: string;
@@ -1471,12 +1516,12 @@ function from_candid_record_n35(_uploadFile: (file: ExternalBlob) => Promise<Uin
     tell: string;
 } {
     return {
-        doStep: record_opt_to_undefined(from_candid_opt_n36(_uploadFile, _downloadFile, value.doStep)),
+        doStep: record_opt_to_undefined(from_candid_opt_n39(_uploadFile, _downloadFile, value.doStep)),
         show: record_opt_to_undefined(from_candid_opt_n12(_uploadFile, _downloadFile, value.show)),
         tell: value.tell
     };
 }
-function from_candid_record_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;
     reward: bigint;
     title: string;
@@ -1496,11 +1541,11 @@ function from_candid_record_n39(_uploadFile: (file: ExternalBlob) => Promise<Uin
         reward: value.reward,
         title: value.title,
         description: value.description,
-        steps: from_candid_vec_n40(_uploadFile, _downloadFile, value.steps),
+        steps: from_candid_vec_n43(_uploadFile, _downloadFile, value.steps),
         category: value.category
     };
 }
-function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;
     title: string;
     content: string;
@@ -1520,11 +1565,11 @@ function from_candid_record_n42(_uploadFile: (file: ExternalBlob) => Promise<Uin
         title: value.title,
         content: value.content,
         stepType: value.stepType,
-        quizQuestions: record_opt_to_undefined(from_candid_opt_n36(_uploadFile, _downloadFile, value.quizQuestions)),
+        quizQuestions: record_opt_to_undefined(from_candid_opt_n39(_uploadFile, _downloadFile, value.quizQuestions)),
         videoUrl: record_opt_to_undefined(from_candid_opt_n12(_uploadFile, _downloadFile, value.videoUrl))
     };
 }
-function from_candid_record_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n48(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     status: string;
     epiqId: [] | [string];
     failureReason: [] | [string];
@@ -1563,28 +1608,48 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
         topped_up_amount: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.topped_up_amount))
     };
 }
-function from_candid_record_n51(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n54(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     publicAddress: string;
     metadata: [] | [string];
+    chain: _Chain;
     createdAt: _Time;
+    privateKey: [] | [string];
+    recoveryPhrase: [] | [string];
     walletLabel: [] | [string];
     walletId: bigint;
 }): {
     publicAddress: string;
     metadata?: string;
+    chain: Chain;
     createdAt: Time;
+    privateKey?: string;
+    recoveryPhrase?: string;
     walletLabel?: string;
     walletId: bigint;
 } {
     return {
         publicAddress: value.publicAddress,
         metadata: record_opt_to_undefined(from_candid_opt_n12(_uploadFile, _downloadFile, value.metadata)),
+        chain: from_candid_Chain_n26(_uploadFile, _downloadFile, value.chain),
         createdAt: value.createdAt,
+        privateKey: record_opt_to_undefined(from_candid_opt_n12(_uploadFile, _downloadFile, value.privateKey)),
+        recoveryPhrase: record_opt_to_undefined(from_candid_opt_n12(_uploadFile, _downloadFile, value.recoveryPhrase)),
         walletLabel: record_opt_to_undefined(from_candid_opt_n12(_uploadFile, _downloadFile, value.walletLabel)),
         walletId: value.walletId
     };
 }
-function from_candid_variant_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    btc: null;
+} | {
+    evm: null;
+} | {
+    icp: null;
+} | {
+    custom: null;
+}): Chain {
+    return "btc" in value ? Chain.btc : "evm" in value ? Chain.evm : "icp" in value ? Chain.icp : "custom" in value ? Chain.custom : value;
+}
+function from_candid_variant_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     member: null;
 } | {
     trustee: null;
@@ -1605,7 +1670,7 @@ function from_candid_variant_n30(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): MemberType {
     return "member" in value ? MemberType.member : "trustee" in value ? MemberType.trustee : "admin" in value ? MemberType.admin : "citizen" in value ? MemberType.citizen : "beneficiary" in value ? MemberType.beneficiary : "superAdmin" in value ? MemberType.superAdmin : "business" in value ? MemberType.business : "ambassador" in value ? MemberType.ambassador : "partner" in value ? MemberType.partner : value;
 }
-function from_candid_variant_n48(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n51(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
 } | {
     user: null;
@@ -1614,26 +1679,26 @@ function from_candid_variant_n48(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): UserRole {
     return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
 }
-function from_candid_vec_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CourseWithModules>): Array<CourseWithModules> {
-    return value.map((x)=>from_candid_CourseWithModules_n26(_uploadFile, _downloadFile, x));
+function from_candid_vec_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CourseWithModules>): Array<CourseWithModules> {
+    return value.map((x)=>from_candid_CourseWithModules_n29(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_MemberType>): Array<MemberType> {
-    return value.map((x)=>from_candid_MemberType_n29(_uploadFile, _downloadFile, x));
+function from_candid_vec_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_MemberType>): Array<MemberType> {
+    return value.map((x)=>from_candid_MemberType_n32(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CourseModuleWithQuestions>): Array<CourseModuleWithQuestions> {
-    return value.map((x)=>from_candid_CourseModuleWithQuestions_n32(_uploadFile, _downloadFile, x));
+function from_candid_vec_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CourseModuleWithQuestions>): Array<CourseModuleWithQuestions> {
+    return value.map((x)=>from_candid_CourseModuleWithQuestions_n35(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_QuestModule>): Array<QuestModule> {
-    return value.map((x)=>from_candid_QuestModule_n38(_uploadFile, _downloadFile, x));
+function from_candid_vec_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_QuestModule>): Array<QuestModule> {
+    return value.map((x)=>from_candid_QuestModule_n41(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_QuestStep>): Array<QuestStep> {
-    return value.map((x)=>from_candid_QuestStep_n41(_uploadFile, _downloadFile, x));
+function from_candid_vec_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_QuestStep>): Array<QuestStep> {
+    return value.map((x)=>from_candid_QuestStep_n44(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_AuthenticationEvent>): Array<AuthenticationEvent> {
-    return value.map((x)=>from_candid_AuthenticationEvent_n44(_uploadFile, _downloadFile, x));
+function from_candid_vec_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_AuthenticationEvent>): Array<AuthenticationEvent> {
+    return value.map((x)=>from_candid_AuthenticationEvent_n47(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n52(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_EpiqWallet>): Array<EpiqWallet> {
-    return value.map((x)=>from_candid_EpiqWallet_n50(_uploadFile, _downloadFile, x));
+function from_candid_vec_n55(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_EpiqWallet>): Array<EpiqWallet> {
+    return value.map((x)=>from_candid_EpiqWallet_n53(_uploadFile, _downloadFile, x));
 }
 function to_candid_CourseModuleContent_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: CourseModuleContent): _CourseModuleContent {
     return to_candid_record_n20(_uploadFile, _downloadFile, value);

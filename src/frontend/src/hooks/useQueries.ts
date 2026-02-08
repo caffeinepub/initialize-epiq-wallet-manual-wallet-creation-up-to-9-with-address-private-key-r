@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import { useInternetIdentity } from './useInternetIdentity';
-import type { UserProfile, Transaction, Message, Quest, QuestProgress, CourseModule, CourseProgress, QuestModule, QuestProgressRecord, EpqReward, CourseWithModules, DisplayNameChangeHistory, CourseModuleWithQuestions, MemberType, AuthenticationEvent, EpiqWallet } from '../backend';
+import type { UserProfile, Transaction, Message, Quest, QuestProgress, CourseModule, CourseProgress, QuestModule, QuestProgressRecord, EpqReward, CourseWithModules, DisplayNameChangeHistory, CourseModuleWithQuestions, MemberType, AuthenticationEvent, EpiqWallet, Chain } from '../backend';
 import { Principal } from '@icp-sdk/core/principal';
 
 const DEFAULT_TIMEOUT = 15000;
@@ -60,21 +60,6 @@ export function useGetUserProfile(user: Principal | null) {
   });
 }
 
-export function useSaveCallerUserProfile() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (profile: UserProfile) => {
-      if (!actor) throw new Error('Actor not available');
-      return withTimeout(actor.saveCallerUserProfile(profile));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
-    },
-  });
-}
-
 export function useGetAllUserProfiles() {
   const { actor, isFetching } = useActor();
 
@@ -87,6 +72,21 @@ export function useGetAllUserProfiles() {
     enabled: !!actor && !isFetching,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+  });
+}
+
+export function useSaveCallerUserProfile() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (profile: UserProfile) => {
+      if (!actor) throw new Error('Actor not available');
+      return withTimeout(actor.saveCallerUserProfile(profile));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
+    },
   });
 }
 
@@ -105,19 +105,19 @@ export function useUpdateUserMemberType() {
   });
 }
 
-// Admin Check Query
-export function useIsCallerAdmin() {
-  const { actor, isFetching } = useActor();
+// Firebase Import
+export function useImportSingleFirebaseUser() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
 
-  return useQuery<boolean>({
-    queryKey: ['isCallerAdmin'],
-    queryFn: async () => {
-      if (!actor) return false;
-      return withTimeout(actor.isCallerAdmin());
+  return useMutation({
+    mutationFn: async (email: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return withTimeout(actor.importSingleFirebaseUser(email));
     },
-    enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allUserProfiles'] });
+    },
   });
 }
 
@@ -137,6 +137,19 @@ export function useCreateTransaction() {
   });
 }
 
+export function useGetTransaction(id: bigint | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Transaction | null>({
+    queryKey: ['transaction', id?.toString()],
+    queryFn: async () => {
+      if (!actor || id === null) return null;
+      return withTimeout(actor.getTransaction(id));
+    },
+    enabled: !!actor && !isFetching && id !== null,
+  });
+}
+
 export function useGetUserTransactions() {
   const { actor, isFetching } = useActor();
 
@@ -147,8 +160,6 @@ export function useGetUserTransactions() {
       return withTimeout(actor.getUserTransactions());
     },
     enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -163,6 +174,7 @@ export function useSendMessage() {
       return withTimeout(actor.sendMessage(to, content));
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
       queryClient.invalidateQueries({ queryKey: ['allMessages'] });
     },
   });
@@ -172,14 +184,12 @@ export function useGetMessagesWithUser(user: Principal | null) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Message[]>({
-    queryKey: ['messagesWithUser', user?.toString()],
+    queryKey: ['messages', user?.toString()],
     queryFn: async () => {
       if (!actor || !user) return [];
       return withTimeout(actor.getMessagesWithUser(user));
     },
     enabled: !!actor && !isFetching && !!user,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -193,8 +203,6 @@ export function useGetAllMessages() {
       return withTimeout(actor.getAllMessages());
     },
     enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -208,24 +216,38 @@ export function useMarkMessageAsRead() {
       return withTimeout(actor.markMessageAsRead(messageId));
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
       queryClient.invalidateQueries({ queryKey: ['allMessages'] });
     },
   });
 }
 
 // Quest Queries
+export function useCreateQuest() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ title, description, category, steps }: { title: string; description: string; category: string; steps: string[] }) => {
+      if (!actor) throw new Error('Actor not available');
+      return withTimeout(actor.createQuest(title, description, category, steps));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quests'] });
+    },
+  });
+}
+
 export function useGetAllQuests() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Quest[]>({
-    queryKey: ['allQuests'],
+    queryKey: ['quests'],
     queryFn: async () => {
       if (!actor) return [];
       return withTimeout(actor.getAllQuests());
     },
     enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -239,23 +261,21 @@ export function useUpdateQuestProgress() {
       return withTimeout(actor.updateQuestProgress(questId, completedSteps, completed));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userQuestProgress'] });
+      queryClient.invalidateQueries({ queryKey: ['questProgress'] });
     },
   });
 }
 
-export function useGetUserQuestProgress(user: Principal) {
+export function useGetUserQuestProgress(user: Principal | null) {
   const { actor, isFetching } = useActor();
 
   return useQuery<QuestProgress[]>({
-    queryKey: ['userQuestProgress', user.toString()],
+    queryKey: ['questProgress', user?.toString()],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor || !user) return [];
       return withTimeout(actor.getUserQuestProgress(user));
     },
-    enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    enabled: !!actor && !isFetching && !!user,
   });
 }
 
@@ -263,14 +283,12 @@ export function useGetAllUserQuestProgress() {
   const { actor, isFetching } = useActor();
 
   return useQuery<[Principal, QuestProgress[]][]>({
-    queryKey: ['allUserQuestProgress'],
+    queryKey: ['allQuestProgress'],
     queryFn: async () => {
       if (!actor) return [];
       return withTimeout(actor.getAllUserQuestProgress());
     },
     enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -279,14 +297,12 @@ export function useGetAllCourseModules() {
   const { actor, isFetching } = useActor();
 
   return useQuery<CourseModule[]>({
-    queryKey: ['allCourseModules'],
+    queryKey: ['courseModules'],
     queryFn: async () => {
       if (!actor) return [];
       return withTimeout(actor.getAllCourseModules());
     },
     enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -300,7 +316,7 @@ export function useUpdateCourseProgress() {
       return withTimeout(actor.updateCourseProgress(moduleId, completedSteps, completed));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userCourseProgress'] });
+      queryClient.invalidateQueries({ queryKey: ['courseProgress'] });
     },
   });
 }
@@ -309,14 +325,12 @@ export function useGetUserCourseProgress(user: Principal | null) {
   const { actor, isFetching } = useActor();
 
   return useQuery<CourseProgress[]>({
-    queryKey: ['userCourseProgress', user?.toString()],
+    queryKey: ['courseProgress', user?.toString()],
     queryFn: async () => {
       if (!actor || !user) return [];
       return withTimeout(actor.getUserCourseProgress(user));
     },
     enabled: !!actor && !isFetching && !!user,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -324,14 +338,12 @@ export function useGetAllUserCourseProgress() {
   const { actor, isFetching } = useActor();
 
   return useQuery<[Principal, CourseProgress[]][]>({
-    queryKey: ['allUserCourseProgress'],
+    queryKey: ['allCourseProgress'],
     queryFn: async () => {
       if (!actor) return [];
       return withTimeout(actor.getAllUserCourseProgress());
     },
     enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -340,14 +352,12 @@ export function useGetAllQuestModules() {
   const { actor, isFetching } = useActor();
 
   return useQuery<QuestModule[]>({
-    queryKey: ['allQuestModules'],
+    queryKey: ['questModules'],
     queryFn: async () => {
       if (!actor) return [];
       return withTimeout(actor.getAllQuestModules());
     },
     enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -361,28 +371,25 @@ export function useUpdateQuestProgressRecord() {
       return withTimeout(actor.updateQuestProgressRecord(moduleId, completedSteps, completed));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userQuestProgressRecords'] });
-      queryClient.invalidateQueries({ queryKey: ['userEpqRewards'] });
+      queryClient.invalidateQueries({ queryKey: ['questProgressRecords'] });
+      queryClient.invalidateQueries({ queryKey: ['epqRewards'] });
     },
   });
 }
 
 export function useGetUserQuestProgressRecords(user?: Principal | null) {
-  const { identity } = useInternetIdentity();
   const { actor, isFetching } = useActor();
-  
-  // Use provided user or fall back to current user's principal
-  const targetUser = user || identity?.getPrincipal();
+  const { identity } = useInternetIdentity();
+
+  const targetUser = user ?? (identity ? identity.getPrincipal() : null);
 
   return useQuery<QuestProgressRecord[]>({
-    queryKey: ['userQuestProgressRecords', targetUser?.toString()],
+    queryKey: ['questProgressRecords', targetUser?.toString()],
     queryFn: async () => {
       if (!actor || !targetUser) return [];
       return withTimeout(actor.getUserQuestProgressRecords(targetUser));
     },
     enabled: !!actor && !isFetching && !!targetUser,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -390,94 +397,48 @@ export function useGetAllUserQuestProgressRecords() {
   const { actor, isFetching } = useActor();
 
   return useQuery<[Principal, QuestProgressRecord[]][]>({
-    queryKey: ['allUserQuestProgressRecords'],
+    queryKey: ['allQuestProgressRecords'],
     queryFn: async () => {
       if (!actor) return [];
       return withTimeout(actor.getAllUserQuestProgressRecords());
     },
     enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
-// EPC Rewards Queries
 export function useGetUserEpqRewards(user?: Principal | null) {
-  const { identity } = useInternetIdentity();
   const { actor, isFetching } = useActor();
-  
-  // Use provided user or fall back to current user's principal
-  const targetUser = user || identity?.getPrincipal();
+  const { identity } = useInternetIdentity();
+
+  const targetUser = user ?? (identity ? identity.getPrincipal() : null);
 
   return useQuery<EpqReward[]>({
-    queryKey: ['userEpqRewards', targetUser?.toString()],
+    queryKey: ['epqRewards', targetUser?.toString()],
     queryFn: async () => {
       if (!actor || !targetUser) return [];
       return withTimeout(actor.getUserEpqRewards(targetUser));
     },
     enabled: !!actor && !isFetching && !!targetUser,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
-// Course with Modules Queries
-export function useGetAllCoursesWithModules() {
+// Course with Modules Queries (alias for getAllCourses)
+export function useGetAllCourses() {
   const { actor, isFetching } = useActor();
 
   return useQuery<CourseWithModules[]>({
-    queryKey: ['allCoursesWithModules'],
+    queryKey: ['courses'],
     queryFn: async () => {
       if (!actor) return [];
-      console.log('[useGetAllCoursesWithModules] Fetching courses...');
-      try {
-        const result = await withTimeout(actor.getAllCourses(), 30000);
-        console.log('[useGetAllCoursesWithModules] Courses fetched:', result);
-        return result;
-      } catch (error) {
-        console.error('[useGetAllCoursesWithModules] Error fetching courses:', error);
-        throw error;
-      }
+      return withTimeout(actor.getAllCourses());
     },
     enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
-export function useUpdateCourseWithModules() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      courseId,
-      title,
-      description,
-      category,
-      modules,
-      reward,
-      availableToAll,
-      assignedMemberTypes,
-    }: {
-      courseId: bigint;
-      title: string;
-      description: string;
-      category: string;
-      modules: CourseModuleWithQuestions[];
-      reward: bigint;
-      availableToAll: boolean;
-      assignedMemberTypes: MemberType[];
-    }) => {
-      if (!actor) throw new Error('Actor not available');
-      return withTimeout(
-        actor.createCourseWithModules(title, description, category, modules, reward, availableToAll, assignedMemberTypes)
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allCoursesWithModules'] });
-    },
-  });
+// Alias for backward compatibility
+export function useGetAllCoursesWithModules() {
+  return useGetAllCourses();
 }
 
 export function useCreateCourse() {
@@ -485,31 +446,27 @@ export function useCreateCourse() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      title,
-      description,
-      category,
-      initialModules,
-    }: {
-      title: string;
-      description: string;
-      category: string;
-      initialModules: CourseModuleWithQuestions[] | null;
-    }) => {
+    mutationFn: async ({ title, description, category, initialModules }: { title: string; description: string; category: string; initialModules?: CourseModuleWithQuestions[] | null }) => {
       if (!actor) throw new Error('Actor not available');
-      console.log('[useCreateCourse] Creating course:', { title, description, category, initialModules });
-      try {
-        const result = await withTimeout(actor.createCourse(title, description, category, initialModules));
-        console.log('[useCreateCourse] Course created with ID:', result);
-        return result;
-      } catch (error) {
-        console.error('[useCreateCourse] Error creating course:', error);
-        throw error;
-      }
+      return withTimeout(actor.createCourse(title, description, category, initialModules ?? null));
     },
     onSuccess: () => {
-      console.log('[useCreateCourse] Invalidating course queries...');
-      queryClient.invalidateQueries({ queryKey: ['allCoursesWithModules'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+    },
+  });
+}
+
+export function useCreateCourseWithModules() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ title, description, category, modules, reward, availableToAll, assignedMemberTypes }: { title: string; description: string; category: string; modules: CourseModuleWithQuestions[]; reward: bigint; availableToAll: boolean; assignedMemberTypes: MemberType[] }) => {
+      if (!actor) throw new Error('Actor not available');
+      return withTimeout(actor.createCourseWithModules(title, description, category, modules, reward, availableToAll, assignedMemberTypes));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
     },
   });
 }
@@ -525,24 +482,19 @@ export function useGetDisplayNameChangeHistory() {
       return withTimeout(actor.getDisplayNameChangeHistory());
     },
     enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
-export function useGetDisplayNameChangeHistoryByPrincipal(principalId: string | null) {
+export function useGetDisplayNameChangeHistoryByPrincipal(principalId: Principal | null) {
   const { actor, isFetching } = useActor();
 
   return useQuery<DisplayNameChangeHistory[]>({
-    queryKey: ['displayNameChangeHistoryByPrincipal', principalId],
+    queryKey: ['displayNameChangeHistory', 'principal', principalId?.toString()],
     queryFn: async () => {
       if (!actor || !principalId) return [];
-      const principal = Principal.fromText(principalId);
-      return withTimeout(actor.getDisplayNameChangeHistoryByPrincipal(principal));
+      return withTimeout(actor.getDisplayNameChangeHistoryByPrincipal(principalId));
     },
     enabled: !!actor && !isFetching && !!principalId,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -550,18 +502,15 @@ export function useGetDisplayNameChangeHistoryByDisplayName(displayName: string 
   const { actor, isFetching } = useActor();
 
   return useQuery<DisplayNameChangeHistory[]>({
-    queryKey: ['displayNameChangeHistoryByDisplayName', displayName],
+    queryKey: ['displayNameChangeHistory', 'displayName', displayName],
     queryFn: async () => {
       if (!actor || !displayName) return [];
       return withTimeout(actor.getDisplayNameChangeHistoryByDisplayName(displayName));
     },
-    enabled: !!actor && !isFetching && !!displayName && displayName.length > 0,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    enabled: !!actor && !isFetching && !!displayName,
   });
 }
 
-// Find User by Display Name
 export function useFindUserByDisplayName() {
   const { actor } = useActor();
 
@@ -573,18 +522,84 @@ export function useFindUserByDisplayName() {
   });
 }
 
-// Firebase User Import
-export function useImportSingleFirebaseUser() {
+// Admin Queries
+export function useIsCallerAdmin() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ['isCallerAdmin'],
+    queryFn: async () => {
+      if (!actor) return false;
+      return withTimeout(actor.isCallerAdmin());
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+// Balance Queries
+export function useGetEthBalance() {
   const { actor } = useActor();
-  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (email: string) => {
+    mutationFn: async (address: string) => {
       if (!actor) throw new Error('Actor not available');
-      return withTimeout(actor.importSingleFirebaseUser(email));
+      return withTimeout(actor.getEthBalance(address));
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allUserProfiles'] });
+  });
+}
+
+export function useGetBtcBalance() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (address: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return withTimeout(actor.getBtcBalance(address));
+    },
+  });
+}
+
+export function useGetIcpBalance() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (address: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return withTimeout(actor.getIcpBalance(address));
+    },
+  });
+}
+
+// Transaction History Queries
+export function useGetEthTransactionHistory() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (address: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return withTimeout(actor.getEthTransactionHistory(address));
+    },
+  });
+}
+
+export function useGetBtcTransactionHistory() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (address: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return withTimeout(actor.getBtcTransactionHistory(address));
+    },
+  });
+}
+
+export function useGetIcpTransactionHistory() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (address: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return withTimeout(actor.getIcpTransactionHistory(address));
     },
   });
 }
@@ -600,24 +615,19 @@ export function useGetAuthenticationAuditLog() {
       return withTimeout(actor.getAuthenticationAuditLog());
     },
     enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
-export function useGetAuthenticationAuditLogByPrincipal(principalId: string | null) {
+export function useGetAuthenticationAuditLogByPrincipal(principalId: Principal | null) {
   const { actor, isFetching } = useActor();
 
   return useQuery<AuthenticationEvent[]>({
-    queryKey: ['authenticationAuditLogByPrincipal', principalId],
+    queryKey: ['authenticationAuditLog', 'principal', principalId?.toString()],
     queryFn: async () => {
       if (!actor || !principalId) return [];
-      const principal = Principal.fromText(principalId);
-      return withTimeout(actor.getAuthenticationAuditLogByPrincipal(principal));
+      return withTimeout(actor.getAuthenticationAuditLogByPrincipal(principalId));
     },
     enabled: !!actor && !isFetching && !!principalId,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -625,14 +635,12 @@ export function useGetAuthenticationAuditLogByEpiqId(epiqId: string | null) {
   const { actor, isFetching } = useActor();
 
   return useQuery<AuthenticationEvent[]>({
-    queryKey: ['authenticationAuditLogByEpiqId', epiqId],
+    queryKey: ['authenticationAuditLog', 'epiqId', epiqId],
     queryFn: async () => {
       if (!actor || !epiqId) return [];
       return withTimeout(actor.getAuthenticationAuditLogByEpiqId(epiqId));
     },
-    enabled: !!actor && !isFetching && !!epiqId && epiqId.length > 0,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    enabled: !!actor && !isFetching && !!epiqId,
   });
 }
 
@@ -640,14 +648,12 @@ export function useGetAuthenticationAuditLogByMethod(authMethod: string | null) 
   const { actor, isFetching } = useActor();
 
   return useQuery<AuthenticationEvent[]>({
-    queryKey: ['authenticationAuditLogByMethod', authMethod],
+    queryKey: ['authenticationAuditLog', 'method', authMethod],
     queryFn: async () => {
       if (!actor || !authMethod) return [];
       return withTimeout(actor.getAuthenticationAuditLogByMethod(authMethod));
     },
-    enabled: !!actor && !isFetching && !!authMethod && authMethod.length > 0,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    enabled: !!actor && !isFetching && !!authMethod,
   });
 }
 
@@ -655,14 +661,12 @@ export function useGetAuthenticationAuditLogByStatus(status: string | null) {
   const { actor, isFetching } = useActor();
 
   return useQuery<AuthenticationEvent[]>({
-    queryKey: ['authenticationAuditLogByStatus', status],
+    queryKey: ['authenticationAuditLog', 'status', status],
     queryFn: async () => {
       if (!actor || !status) return [];
       return withTimeout(actor.getAuthenticationAuditLogByStatus(status));
     },
-    enabled: !!actor && !isFetching && !!status && status.length > 0,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    enabled: !!actor && !isFetching && !!status,
   });
 }
 
@@ -689,19 +693,9 @@ export function useListWallets() {
     queryKey: ['epiqWallets'],
     queryFn: async () => {
       if (!actor) return [];
-      console.log('[useListWallets] Fetching wallets...');
-      try {
-        const result = await withTimeout(actor.listWallets());
-        console.log('[useListWallets] Wallets fetched:', result);
-        return result;
-      } catch (error) {
-        console.error('[useListWallets] Error fetching wallets:', error);
-        throw error;
-      }
+      return withTimeout(actor.listWallets());
     },
     enabled: !!actor && !isFetching,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
@@ -712,18 +706,9 @@ export function useCreateWallet() {
   return useMutation({
     mutationFn: async (walletLabel: string | null) => {
       if (!actor) throw new Error('Actor not available');
-      console.log('[useCreateWallet] Creating wallet with label:', walletLabel);
-      try {
-        const result = await withTimeout(actor.createWallet(walletLabel));
-        console.log('[useCreateWallet] Wallet created:', result);
-        return result;
-      } catch (error) {
-        console.error('[useCreateWallet] Error creating wallet:', error);
-        throw error;
-      }
+      return withTimeout(actor.createWallet(walletLabel));
     },
     onSuccess: () => {
-      console.log('[useCreateWallet] Invalidating wallet queries...');
       queryClient.invalidateQueries({ queryKey: ['epiqWallets'] });
     },
   });
@@ -741,5 +726,18 @@ export function useUpdateWalletLabel() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['epiqWallets'] });
     },
+  });
+}
+
+export function useGetWallet(walletId: bigint | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<EpiqWallet>({
+    queryKey: ['epiqWallet', walletId?.toString()],
+    queryFn: async () => {
+      if (!actor || walletId === null) throw new Error('Actor or wallet ID not available');
+      return withTimeout(actor.getWallet(walletId));
+    },
+    enabled: !!actor && !isFetching && walletId !== null,
   });
 }

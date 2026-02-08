@@ -64,6 +64,12 @@ export const MemberType = IDL.Variant({
   'ambassador' : IDL.Null,
   'partner' : IDL.Null,
 });
+export const Chain = IDL.Variant({
+  'btc' : IDL.Null,
+  'evm' : IDL.Null,
+  'icp' : IDL.Null,
+  'custom' : IDL.Null,
+});
 export const CourseModule = IDL.Record({
   'id' : IDL.Nat,
   'title' : IDL.Text,
@@ -176,7 +182,10 @@ export const EpqReward = IDL.Record({
 export const EpiqWallet = IDL.Record({
   'publicAddress' : IDL.Text,
   'metadata' : IDL.Opt(IDL.Text),
+  'chain' : Chain,
   'createdAt' : Time,
+  'privateKey' : IDL.Opt(IDL.Text),
+  'recoveryPhrase' : IDL.Opt(IDL.Text),
   'walletLabel' : IDL.Opt(IDL.Text),
   'walletId' : IDL.Nat,
 });
@@ -266,7 +275,19 @@ export const idlService = IDL.Service({
       [IDL.Nat],
       [],
     ),
-  'createWallet' : IDL.Func([IDL.Opt(IDL.Text)], [IDL.Text], []),
+  'createWallet' : IDL.Func(
+      [IDL.Opt(IDL.Text)],
+      [
+        IDL.Record({
+          'chain' : Chain,
+          'privateKey' : IDL.Opt(IDL.Text),
+          'address' : IDL.Text,
+          'recoveryPhrase' : IDL.Opt(IDL.Text),
+          'walletId' : IDL.Nat,
+        }),
+      ],
+      [],
+    ),
   'findUserByDisplayName' : IDL.Func([IDL.Text], [IDL.Principal], ['query']),
   'getAllCourseModules' : IDL.Func([], [IDL.Vec(CourseModule)], ['query']),
   'getAllCourses' : IDL.Func([], [IDL.Vec(CourseWithModules)], ['query']),
@@ -479,6 +500,12 @@ export const idlFactory = ({ IDL }) => {
     'ambassador' : IDL.Null,
     'partner' : IDL.Null,
   });
+  const Chain = IDL.Variant({
+    'btc' : IDL.Null,
+    'evm' : IDL.Null,
+    'icp' : IDL.Null,
+    'custom' : IDL.Null,
+  });
   const CourseModule = IDL.Record({
     'id' : IDL.Nat,
     'title' : IDL.Text,
@@ -591,7 +618,10 @@ export const idlFactory = ({ IDL }) => {
   const EpiqWallet = IDL.Record({
     'publicAddress' : IDL.Text,
     'metadata' : IDL.Opt(IDL.Text),
+    'chain' : Chain,
     'createdAt' : Time,
+    'privateKey' : IDL.Opt(IDL.Text),
+    'recoveryPhrase' : IDL.Opt(IDL.Text),
     'walletLabel' : IDL.Opt(IDL.Text),
     'walletId' : IDL.Nat,
   });
@@ -678,7 +708,19 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Nat],
         [],
       ),
-    'createWallet' : IDL.Func([IDL.Opt(IDL.Text)], [IDL.Text], []),
+    'createWallet' : IDL.Func(
+        [IDL.Opt(IDL.Text)],
+        [
+          IDL.Record({
+            'chain' : Chain,
+            'privateKey' : IDL.Opt(IDL.Text),
+            'address' : IDL.Text,
+            'recoveryPhrase' : IDL.Opt(IDL.Text),
+            'walletId' : IDL.Nat,
+          }),
+        ],
+        [],
+      ),
     'findUserByDisplayName' : IDL.Func([IDL.Text], [IDL.Principal], ['query']),
     'getAllCourseModules' : IDL.Func([], [IDL.Vec(CourseModule)], ['query']),
     'getAllCourses' : IDL.Func([], [IDL.Vec(CourseWithModules)], ['query']),

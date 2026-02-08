@@ -15,12 +15,13 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Search, Calendar, User, ArrowRight } from 'lucide-react';
+import { Principal } from '@icp-sdk/core/principal';
 
 export default function DisplayNameHistoryTab() {
   const [searchType, setSearchType] = useState<'all' | 'principal' | 'displayName'>('all');
   const [principalSearch, setPrincipalSearch] = useState('');
   const [displayNameSearch, setDisplayNameSearch] = useState('');
-  const [activePrincipalSearch, setActivePrincipalSearch] = useState<string | null>(null);
+  const [activePrincipalSearch, setActivePrincipalSearch] = useState<Principal | null>(null);
   const [activeDisplayNameSearch, setActiveDisplayNameSearch] = useState<string | null>(null);
 
   const { data: allHistory, isLoading: allLoading } = useGetDisplayNameChangeHistory();
@@ -30,7 +31,13 @@ export default function DisplayNameHistoryTab() {
   const handlePrincipalSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (principalSearch.trim()) {
-      setActivePrincipalSearch(principalSearch.trim());
+      try {
+        const principal = Principal.fromText(principalSearch.trim());
+        setActivePrincipalSearch(principal);
+      } catch (error) {
+        console.error('Invalid Principal ID:', error);
+        alert('Invalid Principal ID format');
+      }
     }
   };
 
@@ -158,7 +165,7 @@ export default function DisplayNameHistoryTab() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    Showing results for: <Badge variant="outline" className="ml-2 font-mono">{activePrincipalSearch.slice(0, 12)}...</Badge>
+                    Showing results for: <Badge variant="outline" className="ml-2 font-mono">{activePrincipalSearch.toString().slice(0, 12)}...</Badge>
                   </p>
                   <Button
                     variant="ghost"

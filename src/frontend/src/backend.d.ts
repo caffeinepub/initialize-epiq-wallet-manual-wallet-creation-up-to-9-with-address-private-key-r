@@ -81,7 +81,10 @@ export interface FirebaseAuthResponse {
 export interface EpiqWallet {
     publicAddress: string;
     metadata?: string;
+    chain: Chain;
     createdAt: Time;
+    privateKey?: string;
+    recoveryPhrase?: string;
     walletLabel?: string;
     walletId: bigint;
 }
@@ -170,6 +173,12 @@ export interface UserProfile {
     btcWalletAddress: string;
     ethWalletAddress: string;
 }
+export enum Chain {
+    btc = "btc",
+    evm = "evm",
+    icp = "icp",
+    custom = "custom"
+}
 export enum MemberType {
     member = "member",
     trustee = "trustee",
@@ -194,7 +203,13 @@ export interface backendInterface {
     createCourseWithModules(title: string, description: string, category: string, modules: Array<CourseModuleWithQuestions>, reward: bigint, availableToAll: boolean, assignedMemberTypes: Array<MemberType>): Promise<bigint>;
     createQuest(title: string, description: string, category: string, steps: Array<string>): Promise<bigint>;
     createTransaction(to: Principal, amount: bigint, currency: string): Promise<bigint>;
-    createWallet(walletLabel: string | null): Promise<string>;
+    createWallet(walletLabel: string | null): Promise<{
+        chain: Chain;
+        privateKey?: string;
+        address: string;
+        recoveryPhrase?: string;
+        walletId: bigint;
+    }>;
     findUserByDisplayName(displayName: string): Promise<Principal>;
     getAllCourseModules(): Promise<Array<CourseModule>>;
     getAllCourses(): Promise<Array<CourseWithModules>>;

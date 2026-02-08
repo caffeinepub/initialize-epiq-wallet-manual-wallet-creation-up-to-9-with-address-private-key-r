@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Wallet, Plus, Copy, CheckCircle, AlertCircle, Loader2, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
+import { isValidEvmAddress } from '../utils/evmAddress';
+import type { Chain } from '../backend';
 
 export default function EpiqWalletsPanel() {
   const { data: wallets = [], isLoading, error, refetch } = useListWallets();
@@ -20,6 +22,7 @@ export default function EpiqWalletsPanel() {
     address: string;
     privateKey: string;
     seedPhrase: string;
+    chain: Chain;
   } | null>(null);
   const [hasAcknowledged, setHasAcknowledged] = useState(false);
 
@@ -27,20 +30,24 @@ export default function EpiqWalletsPanel() {
     try {
       const result = await createWallet.mutateAsync(null);
       
-      // Parse the result to extract wallet data
-      // Backend returns: "Wallet successfully created. Address: generated_address_X"
-      const addressMatch = result.match(/Address: (.+)/);
-      const address = addressMatch ? addressMatch[1] : 'Unknown';
+      // Validate the address format
+      if (!isValidEvmAddress(result.address)) {
+        console.error('Invalid EVM address format received:', result.address);
+        toast.error('Invalid wallet address format received from backend');
+        return;
+      }
       
-      // Generate mock private key and seed phrase for demonstration
-      // In production, these would come from proper cryptographic generation
-      const privateKey = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-      const seedPhrase = generateMockSeedPhrase();
+      // Extract credentials from backend response
+      const address = result.address;
+      const privateKey = result.privateKey ?? '';
+      const seedPhrase = result.recoveryPhrase ?? '';
+      const chain = result.chain;
       
       setNewWalletData({
         address,
         privateKey,
         seedPhrase,
+        chain,
       });
       
       setShowCreateDialog(false);
@@ -63,15 +70,6 @@ export default function EpiqWalletsPanel() {
     }
   };
 
-  const generateMockSeedPhrase = (): string => {
-    const words = [
-      'abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract',
-      'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid',
-      'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'actual',
-    ];
-    return Array.from({ length: 12 }, () => words[Math.floor(Math.random() * words.length)]).join(' ');
-  };
-
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied to clipboard`);
@@ -91,6 +89,16 @@ export default function EpiqWalletsPanel() {
   const formatDate = (timestamp: bigint) => {
     const date = new Date(Number(timestamp) / 1000000);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  };
+
+  const getChainBadge = (chain: Chain) => {
+    const chainLabels: Record<Chain, string> = {
+      evm: 'EVM',
+      btc: 'Bitcoin',
+      icp: 'ICP',
+      custom: 'Custom',
+    };
+    return chainLabels[chain] || 'Unknown';
   };
 
   if (isLoading) {
@@ -186,6 +194,7 @@ export default function EpiqWalletsPanel() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Wallet ID</TableHead>
+                    <TableHead>Chain</TableHead>
                     <TableHead>Public Address</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Status</TableHead>
@@ -197,6 +206,11 @@ export default function EpiqWalletsPanel() {
                       <TableCell>
                         <Badge variant="outline" className="font-mono">
                           #{Number(wallet.walletId)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="font-medium">
+                          {getChainBadge(wallet.chain)}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -303,6 +317,14 @@ export default function EpiqWalletsPanel() {
 
           {newWalletData && (
             <div className="space-y-4 py-4">
+              {/* Chain Badge */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-semibold text-foreground">Chain:</label>
+                <Badge variant="secondary" className="font-medium">
+                  {getChainBadge(newWalletData.chain)}
+                </Badge>
+              </div>
+
               {/* Public Address */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-foreground">Public Address</label>

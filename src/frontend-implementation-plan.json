@@ -1,89 +1,52 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "EPIQ Wallet UI: manual create/list flow (up to 9) + Phase 1 testing checklist",
+  "title": "Frontend updates to consume structured multi-chain Create Wallet results",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Ensure wallet creation is strictly manual and only triggered by explicit user action in the Wallet UI.",
+      "id": "REQ-7",
+      "summary": "Consume backend-generated EVM wallet credentials during Create Wallet and display them exactly once in the existing success dialog.",
       "acceptanceCriteria": [
-        "A newly enrolled user has zero wallets until they manually create one.",
-        "UI does not prompt for wallet creation until after the user is in the app (e.g., on the Wallet tab) and only proceeds after explicit user confirmation."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/WalletTab.tsx",
-          "operation": "modify",
-          "description": "Ensure the EPIQ wallet creation flow is only reachable from an explicit user click within the Wallet tab (no auto-open modals, no auto-mutations on mount), and add an explicit confirmation step before calling the create action."
-        },
-        {
-          "path": "frontend/src/components/EpiqWalletsPanel.tsx",
-          "operation": "create",
-          "description": "Create a dedicated panel component for EPIQ wallet management that only invokes creation via an explicit user interaction and confirmation (no side effects on mount)."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Add UI under the existing wallet area to list EPIQ wallets (up to 9) and provide a create flow that shows address + private key + recovery phrase exactly once with warnings and required acknowledgment.",
-      "acceptanceCriteria": [
-        "Wallet UI shows an empty state when the user has no wallets, with a clear 'Create Wallet' primary action.",
-        "When a wallet is created, the UI displays address, private key, and seed phrase once in the success view, along with copy-to-clipboard controls.",
-        "The UI requires the user to confirm they have stored the credentials before allowing them to dismiss/complete the flow.",
-        "After dismissal, the seed phrase and private key are no longer retrievable from standard 'list wallets' views (only the public address and metadata remain visible)."
+        "Creating a wallet no longer yields placeholder addresses like \"generated_address_0\"; the returned address is a valid EVM address string formatted as 0x + 40 hex characters.",
+        "The backend returns the newly generated private key and recovery phrase (mnemonic) as part of the Create Wallet response, and the frontend displays them in the existing one-time success dialog without generating mock values.",
+        "The wallet list stores/displays the public address returned by the backend and remains capped at 9 wallets per user (caller Principal), with no automatic provisioning outside the explicit Create action."
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/EpiqWalletsPanel.tsx",
-          "operation": "create",
-          "description": "Implement EPIQ wallet list + create flow UI using existing shadcn/ui components (e.g., Card, Button, Dialog, Table, Alert, Checkbox). Include: empty state, list (public address + metadata only), and a post-create 'show once' success view that displays address/private key/seed phrase with strong warnings and copy-to-clipboard controls; require an acknowledgment checkbox before allowing dismissal; clear sensitive data from component state on dismissal. Verify the component's usage instructions before implementing."
+          "operation": "modify",
+          "description": "Update the Create Wallet flow to use the structured createWallet result (address/privateKey/recoveryPhrase/chain) instead of parsing a message string; remove placeholder address handling and ensure the success dialog shows backend-provided credentials exactly once, preserving the existing acknowledgement gating and refetch-after-dismiss behavior."
         },
         {
-          "path": "frontend/src/components/WalletTab.tsx",
-          "operation": "modify",
-          "description": "Wire the new EpiqWalletsPanel into the existing wallet area (e.g., add a subsection or tab labeled 'EPIQ Wallets') so it is reachable from the current Wallet UI without creating a new top-level route."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Integrate React Query hooks and backend actor calls for listing and creating EPIQ wallets, including cache invalidation and user-friendly error states.",
-      "acceptanceCriteria": [
-        "There is a React Query query to fetch the caller’s wallet list and a mutation to create a wallet.",
-        "On successful wallet creation, the wallet list query is invalidated/refetched and the new wallet appears in the list.",
-        "Error states (backend not ready, permission error, limit reached) are shown to the user in English with actionable next steps."
-      ],
-      "file_operations": [
+          "path": "frontend/src/utils/evmAddress.ts",
+          "operation": "create",
+          "description": "Add a small frontend utility to validate/normalize EVM address strings (e.g., checks for 0x + 40 hex chars) so the UI can defensively verify the backend-provided address before displaying/copying and provide an English error toast if the format is invalid."
+        },
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add React Query hooks for EPIQ wallets using the backend actor methods from frontend/src/backend.d.ts: (1) a list wallets query (listWallets) and (2) a create wallet mutation (createWallet). On create success, invalidate/refetch the wallet list query. Normalize and surface errors (unauthorized, limit reached, backend not ready/timeouts) in English-friendly messages for the UI to display."
-        },
-        {
-          "path": "frontend/src/components/EpiqWalletsPanel.tsx",
-          "operation": "create",
-          "description": "Use the new wallet query + mutation hooks to render loading/empty/error states, trigger create wallet, and on success refresh the list via React Query invalidation. Map backend errors into actionable UI messages (e.g., 'Wallet limit reached (9).', 'Please log in again.', 'Backend is still starting—try again in a moment.')."
+          "description": "Ensure the wallet create mutation returns the typed structured result from backend createWallet (not a string), and invalidate/refetch wallet list queries on success so the wallets table continues to display the backend-returned public address without any client-side generation."
         }
       ]
     },
     {
-      "id": "REQ-6",
-      "summary": "Add a minimal, read-only Phase 1 Testing Plan section in-app covering dual authentication, session transitions, user sync, and duplicate prevention.",
+      "id": "REQ-9",
+      "summary": "Refactor the EPIQ Wallet create flow to consume typed Create Wallet results (address/privateKey/seedPhrase/chain) and stop generating or parsing credentials client-side.",
       "acceptanceCriteria": [
-        "The app includes a visible (admin-only or clearly labeled) read-only checklist page/section describing the Phase 1 tests in English.",
-        "The checklist covers: dual auth verification, data consistency, session transition validation, and auto-mapping confirmation (no duplicates).",
-        "This page/section does not block normal usage and does not attempt to automatically run tests."
+        "frontend/src/components/EpiqWalletsPanel.tsx no longer generates a mock private key or mock seed phrase; it displays values returned from the backend.",
+        "The frontend no longer relies on regex parsing of a backend string message to get the address; it uses explicit response fields.",
+        "User-facing text remains in English and the existing “show exactly once” success-dialog behavior remains intact."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/Phase1TestingPlan.tsx",
-          "operation": "create",
-          "description": "Create a read-only checklist component (English text) describing Phase 1 tests for: dual authentication (Internet Identity + EPIQ Shield/Firebase), session transitions, user sync/data consistency, and duplicate prevention/auto-mapping confirmation. Use existing shadcn/ui primitives for layout (Card, Separator, etc.). Verify the component's usage instructions before implementing."
+          "path": "frontend/src/components/EpiqWalletsPanel.tsx",
+          "operation": "modify",
+          "description": "Remove regex parsing and mock credential generation; map backend response fields directly into the existing one-time success dialog state (including chain), keeping all user-facing text in English and preserving the current dialog open/close + acknowledgement semantics."
         },
         {
-          "path": "frontend/src/components/AdminTab.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Wire Phase1TestingPlan into the existing Admin area as an admin-only visible section/tab. Use the authorization component’s role-based access capability via the existing admin gating pattern (e.g., only render for admins) and ensure it remains strictly read-only. Verify the component's usage instructions before implementing."
+          "description": "Align the useCreateWallet hook typings and returned value shape with the backend interface so EpiqWalletsPanel receives explicit fields (address/privateKey/recoveryPhrase/chain/walletId) and never needs to parse strings or fabricate credentials."
         }
       ]
     }

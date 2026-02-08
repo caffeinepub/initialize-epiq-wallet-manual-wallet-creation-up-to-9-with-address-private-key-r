@@ -1,79 +1,48 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-07T21:01:08.705Z",
+  "generatedAt": "2026-02-08T01:15:47.750Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 6,
-    "implemented": 4,
+    "total": 3,
+    "implemented": 2,
     "items": [
       {
-        "id": "REQ-1",
-        "summary": "Add backend support for EPIQ Wallets in EPIQ Life: persist up to 9 wallets per user (by caller Principal), each wallet containing at minimum: walletId/index, label (optional), createdAt timestamp, public address, and any metadata needed to support listing and later reference.",
+        "id": "REQ-7",
+        "summary": "Replace placeholder wallet-address generation with real EVM-compatible address derivation (MetaMask-importable) produced on the backend during the user-initiated Create Wallet action, and return the generated credentials (address, private key, recovery phrase) to the frontend exactly once.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/EpiqWalletsPanel.tsx",
+          "frontend/src/utils/evmAddress.ts",
+          "frontend/src/hooks/useQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/EpiqWalletsPanel.tsx",
+          "frontend/src/utils/evmAddress.ts",
+          "frontend/src/hooks/useQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-8",
+        "summary": "Refactor wallet generation logic to be chain-pluggable and future-proof for adding other chains (and a potential custom chain) by introducing a backend-level chain abstraction for key/address derivation while keeping EVM as the default initial implementation.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-2",
-        "summary": "Implement backend wallet credential generation for a user-initiated 'Create Wallet' action that generates: (1) a public wallet address, (2) a private key, and (3) a recovery seed phrase (mnemonic). Ensure generation uses secure randomness available on the Internet Computer and is not derived from predictable inputs (e.g., time-only).",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Ensure wallet creation is strictly manual: do not auto-provision any wallet during enrollment, profile creation, login, or Firebase sync. Wallets are created only when the user explicitly triggers the create action in the UI.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/WalletTab.tsx",
-          "frontend/src/components/EpiqWalletsPanel.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/WalletTab.tsx",
-          "frontend/src/components/EpiqWalletsPanel.tsx"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Add frontend UI for EPIQ Wallet management (in/under the existing wallet area): display a list of the user’s EPIQ wallets (up to 9), and provide a 'Create Wallet' flow that shows the generated address, private key, and recovery phrase exactly once with strong warnings and a required acknowledgment checkbox before closing.",
+        "id": "REQ-9",
+        "summary": "Update the frontend EPIQ Wallet create flow to consume structured Create Wallet results (address/privateKey/seedPhrase/chain) from the backend rather than parsing a message string and generating mock credentials client-side.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/components/EpiqWalletsPanel.tsx",
-          "frontend/src/components/WalletTab.tsx"
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
           "frontend/src/components/EpiqWalletsPanel.tsx",
-          "frontend/src/components/WalletTab.tsx"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Integrate frontend data fetching/mutations for EPIQ Wallets using React Query (new query hooks and mutations) and backend actor calls, including cache invalidation so that creating a wallet immediately updates the wallet list in the UI.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/EpiqWalletsPanel.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/EpiqWalletsPanel.tsx"
-        ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Add a minimal in-app Phase 1 Testing Plan page/section (read-only) that lists the Phase 1 tests for dual authentication (Internet Identity + EPIQ Shield/Firebase), session transitions, user sync, and duplicate prevention, to be executed after wallet functionality is confirmed working.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/Phase1TestingPlan.tsx",
-          "frontend/src/components/AdminTab.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/Phase1TestingPlan.tsx",
-          "frontend/src/components/AdminTab.tsx"
+          "frontend/src/hooks/useQueries.ts"
         ]
       }
     ]
@@ -82,28 +51,19 @@
     "backend/main.mo",
     "backend/migration.mo",
     "build-request.json",
-    "build-template/Dockerfile",
-    "build-template/LICENSE",
-    "build-template/README.md",
-    "build-template/deploy.sh",
-    "build-template/icp.yaml",
-    "build-template/src/backend/canister.yaml",
-    "build-template/src/frontend/canister.yaml",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/AdminTab.tsx",
+    "frontend/src/components/CourseManagementTab.tsx",
+    "frontend/src/components/DisplayNameHistoryTab.tsx",
     "frontend/src/components/EpiqWalletsPanel.tsx",
-    "frontend/src/components/Phase1TestingPlan.tsx",
-    "frontend/src/components/WalletTab.tsx",
-    "frontend/src/config.ts",
+    "frontend/src/components/SecurityAuditLogTab.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useInternetIdentity.ts",
     "frontend/src/hooks/useQueries.ts",
+    "frontend/src/utils/evmAddress.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

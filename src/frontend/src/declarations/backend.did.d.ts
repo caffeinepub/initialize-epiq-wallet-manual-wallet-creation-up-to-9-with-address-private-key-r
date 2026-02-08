@@ -19,6 +19,10 @@ export interface AuthenticationEvent {
   'timestamp' : Time,
   'principalId' : Principal,
 }
+export type Chain = { 'btc' : null } |
+  { 'evm' : null } |
+  { 'icp' : null } |
+  { 'custom' : null };
 export interface CourseModule {
   'id' : bigint,
   'title' : string,
@@ -63,7 +67,10 @@ export interface DisplayNameChangeHistory {
 export interface EpiqWallet {
   'publicAddress' : string,
   'metadata' : [] | [string],
+  'chain' : Chain,
   'createdAt' : Time,
+  'privateKey' : [] | [string],
+  'recoveryPhrase' : [] | [string],
   'walletLabel' : [] | [string],
   'walletId' : bigint,
 }
@@ -233,7 +240,16 @@ export interface _SERVICE {
   >,
   'createQuest' : ActorMethod<[string, string, string, Array<string>], bigint>,
   'createTransaction' : ActorMethod<[Principal, bigint, string], bigint>,
-  'createWallet' : ActorMethod<[[] | [string]], string>,
+  'createWallet' : ActorMethod<
+    [[] | [string]],
+    {
+      'chain' : Chain,
+      'privateKey' : [] | [string],
+      'address' : string,
+      'recoveryPhrase' : [] | [string],
+      'walletId' : bigint,
+    }
+  >,
   'findUserByDisplayName' : ActorMethod<[string], Principal>,
   'getAllCourseModules' : ActorMethod<[], Array<CourseModule>>,
   'getAllCourses' : ActorMethod<[], Array<CourseWithModules>>,

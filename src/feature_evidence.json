@@ -2,11 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-wallet-creation-is-strictly-manual-do-not-auto-provision-any-wallet-during-enrollment-profile-creation-login-or-firebase-sync-wallets-are-created-only-when-the-user-explicitly-triggers-the-create-action-in-the-ui",
-      "featureTitle": "Ensure wallet creation is strictly manual: do not auto-provision any wallet during enrollment, profile creation, login, or Firebase sync. Wallets are created only when the user explicitly triggers the create action in the UI.",
+      "featureId": "feature-replace-placeholder-wallet-address-generation-with-real-evm-compatible-address-derivation-metamask-importable-produced-on-the-backend-during-the-user-initiated-create-wallet-action-and-return-the-generated-credentials-address-private-key-recovery-phrase-to-the-frontend-exactly-once",
+      "featureTitle": "Replace placeholder wallet-address generation with real EVM-compatible address derivation (MetaMask-importable) produced on the backend during the user-initiated Create Wallet action, and return the generated credentials (address, private key, recovery phrase) to the frontend exactly once.",
       "files": [
         "frontend/src/components/EpiqWalletsPanel.tsx",
-        "frontend/src/components/WalletTab.tsx"
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/utils/evmAddress.ts"
       ],
       "components": [
         "authorization@1.0.1",
@@ -19,35 +20,13 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-3"
+        "REQ-7"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-frontend-ui-for-epiq-wallet-management-in-under-the-existing-wallet-area-display-a-list-of-the-user-s-epiq-wallets-up-to-9-and-provide-a-create-wallet-flow-that-shows-the-generated-address-private-key-and-recovery-phrase-exactly-once-with-strong-warnings-and-a-required-acknowledgment-checkbox-before-closing",
-      "featureTitle": "Add frontend UI for EPIQ Wallet management (in/under the existing wallet area): display a list of the user’s EPIQ wallets (up to 9), and provide a 'Create Wallet' flow that shows the generated address, private key, and recovery phrase exactly once with strong warnings and a required acknowledgment checkbox before closing.",
-      "files": [
-        "frontend/src/components/EpiqWalletsPanel.tsx",
-        "frontend/src/components/WalletTab.tsx"
-      ],
-      "components": [
-        "authorization@1.0.1",
-        "http-outcalls@1.1.1",
-        "blob-storage@2.0.3",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-integrate-frontend-data-fetching-mutations-for-epiq-wallets-using-react-query-new-query-hooks-and-mutations-and-backend-actor-calls-including-cache-invalidation-so-that-creating-a-wallet-immediately-updates-the-wallet-list-in-the-ui",
-      "featureTitle": "Integrate frontend data fetching/mutations for EPIQ Wallets using React Query (new query hooks and mutations) and backend actor calls, including cache invalidation so that creating a wallet immediately updates the wallet list in the UI.",
+      "featureId": "feature-update-the-frontend-epiq-wallet-create-flow-to-consume-structured-create-wallet-results-address-privatekey-seedphrase-chain-from-the-backend-rather-than-parsing-a-message-string-and-generating-mock-credentials-client-side",
+      "featureTitle": "Update the frontend EPIQ Wallet create flow to consume structured Create Wallet results (address/privateKey/seedPhrase/chain) from the backend rather than parsing a message string and generating mock credentials client-side.",
       "files": [
         "frontend/src/components/EpiqWalletsPanel.tsx",
         "frontend/src/hooks/useQueries.ts"
@@ -63,29 +42,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-5"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-a-minimal-in-app-phase-1-testing-plan-page-section-read-only-that-lists-the-phase-1-tests-for-dual-authentication-internet-identity-epiq-shield-firebase-session-transitions-user-sync-and-duplicate-prevention-to-be-executed-after-wallet-functionality-is-confirmed-working",
-      "featureTitle": "Add a minimal in-app Phase 1 Testing Plan page/section (read-only) that lists the Phase 1 tests for dual authentication (Internet Identity + EPIQ Shield/Firebase), session transitions, user sync, and duplicate prevention, to be executed after wallet functionality is confirmed working.",
-      "files": [
-        "frontend/src/components/AdminTab.tsx",
-        "frontend/src/components/Phase1TestingPlan.tsx"
-      ],
-      "components": [
-        "authorization@1.0.1",
-        "http-outcalls@1.1.1",
-        "blob-storage@2.0.3",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-6"
+        "REQ-9"
       ],
       "confidence": "high"
     }

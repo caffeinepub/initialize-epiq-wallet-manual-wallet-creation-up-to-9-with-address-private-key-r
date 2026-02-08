@@ -1,57 +1,49 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-07T21:01:08.702Z",
-  "summary": "Diff adds frontend EPIQ wallet panel UI + Phase 1 testing plan UI, and adds backend wallet data types/storage scaffolding. However, wallet credential generation/return (address+private key+mnemonic) is not implemented end-to-end: the frontend fabricates private keys/seed phrases, and backend wallet API methods/limits are not evidenced in the diff summary.",
+  "generatedAt": "2026-02-08T01:15:47.746Z",
+  "summary": "Diff introduces wallet schema changes (chain + optional privateKey/recoveryPhrase) with a migration module and updates the frontend wallet create flow to consume structured backend fields and validate EVM address format. However, the diff summary does not show evidence of real EVM key/address derivation on the backend, nor a clear chain-pluggable derivation boundary or chain-selection support in Create Wallet.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Backend support to persist up to 9 wallets per caller and allow creating multiple wallets and listing them, with a hard limit of 9 and caller-only scoping.",
-      "reason": "backend/main.mo shows new EpiqWallet types and maps, but the diff summary does not show any public create/list methods, caller scoping checks, or enforcement of the 9-wallet limit / clear 10th-wallet error.",
+      "id": "REQ-7",
+      "requirement": "Replace placeholder wallet-address generation with real EVM-compatible address derivation (MetaMask-importable) produced on the backend during the user-initiated Create Wallet action, and return the generated credentials (address, private key, recovery phrase) to the frontend exactly once.",
+      "reason": "The diff summary shows wallet records now have optional privateKey/recoveryPhrase and the frontend expects these fields, but no backend logic is shown that actually derives/generates a real EVM address (0x + 40 hex) and generates/returns a private key + mnemonic during Create Wallet. The only EVM-address-related code shown is frontend-side validation/normalization utilities.",
       "evidence": [
-        "backend/main.mo"
+        "backend/main.mo (truncated; shows new fields but not generation/derivation logic)",
+        "frontend/src/components/EpiqWalletsPanel.tsx (expects result.address/privateKey/recoveryPhrase from backend)",
+        "frontend/src/utils/evmAddress.ts (only validates/normalizes format)"
       ]
     },
     {
-      "id": "REQ-2",
-      "requirement": "Backend create-wallet action generates and returns (address, private key, recovery seed phrase) using secure randomness on the Internet Computer.",
-      "reason": "No backend code is shown that generates or returns private key + seed phrase; the frontend instead generates mock values locally via Math.random, which does not satisfy secure IC randomness or backend generation/return requirements.",
+      "id": "REQ-8",
+      "requirement": "Refactor wallet generation logic to be chain-pluggable and future-proof by introducing a backend-level chain abstraction for key/address derivation while keeping EVM as the default; Create Wallet supports selecting a chain (explicit parameter or default); a single well-defined backend interface boundary exists for “derive address/keys for chain X”.",
+      "reason": "A Chain variant/type is added and migration defaults existing wallets to #evm, but the diff summary does not show (a) any explicit Create Wallet parameter for selecting chain, or (b) a clearly defined backend function/interface boundary for chain-specific key/address derivation (e.g., deriveKeys(chain)).",
       "evidence": [
-        "frontend/src/components/EpiqWalletsPanel.tsx",
-        "backend/main.mo"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "requirement": "Create Wallet flow must display the generated address/private key/seed phrase exactly once from the backend result, with strong warnings and required acknowledgment; after dismissal, secrets are not retrievable from list views.",
-      "reason": "The create flow fabricates the private key and seed phrase on the frontend ('mock ... for demonstration') rather than showing backend-generated secrets. The diff summary also does not evidence backend returning secrets exactly once or list endpoints excluding secrets.",
-      "evidence": [
-        "frontend/src/components/EpiqWalletsPanel.tsx"
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "requirement": "React Query hooks for listing wallets and creating wallets with cache invalidation/refetch and English error handling for permission/limit/backend-not-ready.",
-      "reason": "EpiqWalletsPanel uses useListWallets/useCreateWallet, but the diff summary snippet of useQueries.ts does not show these wallet hooks or their cache invalidation behavior; cannot verify implementation from provided truncated diff.",
-      "evidence": [
-        "frontend/src/components/EpiqWalletsPanel.tsx",
-        "frontend/src/hooks/useQueries.ts"
+        "backend/main.mo (truncated; defines type Chain and adds chain field to EpiqWallet, but no derivation interface shown)",
+        "backend/migration.mo (adds Chain and defaults chain = #evm for migrated wallets)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Frontend generates a 'mock private key' and 'mock seed phrase' using Math.random for demonstration instead of using backend-generated credentials.",
-      "reason": "Not requested; conflicts with requirements/constraints that wallet generation and secret material handling must occur within EPIQ Life backend logic (and REQ-2 requires secure IC randomness and returning secrets from create-wallet).",
+      "description": "New/changed admin/course management UI and related behaviors not mentioned in the wallet-focused BuildRequest.",
+      "reason": "The BuildRequest only targets wallet generation/architecture and the wallet create flow, but the diff includes modifications to CourseManagementTab.",
       "evidence": [
-        "frontend/src/components/EpiqWalletsPanel.tsx"
+        "frontend/src/components/CourseManagementTab.tsx"
       ]
     },
     {
-      "description": "Frontend assumes backend create-wallet returns a human-readable string and parses the address via regex (\"Wallet successfully created. Address: ...\").",
-      "reason": "BuildRequest does not specify a string response format; it requires the create-wallet method return address + private key + recovery phrase as data. The parsing approach suggests an unrequested/incorrect API contract.",
+      "description": "Display name history search/filter UI changes not requested in the BuildRequest.",
+      "reason": "Not part of REQ-7/8/9; appears unrelated to wallet generation/flow.",
       "evidence": [
-        "frontend/src/components/EpiqWalletsPanel.tsx"
+        "frontend/src/components/DisplayNameHistoryTab.tsx"
+      ]
+    },
+    {
+      "description": "Security audit log filtering/export/cleanup UI changes not requested in the BuildRequest.",
+      "reason": "Not part of REQ-7/8/9; appears unrelated to wallet generation/flow.",
+      "evidence": [
+        "frontend/src/components/SecurityAuditLogTab.tsx"
       ]
     }
   ],
@@ -60,12 +52,12 @@
     "backend/main.mo",
     "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/AdminTab.tsx",
+    "frontend/src/components/CourseManagementTab.tsx",
+    "frontend/src/components/DisplayNameHistoryTab.tsx",
     "frontend/src/components/EpiqWalletsPanel.tsx",
-    "frontend/src/components/Phase1TestingPlan.tsx",
-    "frontend/src/components/WalletTab.tsx",
-    "frontend/src/hooks/useInternetIdentity.ts",
+    "frontend/src/components/SecurityAuditLogTab.tsx",
     "frontend/src/hooks/useQueries.ts",
+    "frontend/src/utils/evmAddress.ts",
     "project_state.json"
   ]
 }
