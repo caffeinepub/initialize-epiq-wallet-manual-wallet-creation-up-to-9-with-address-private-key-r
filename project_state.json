@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "Backend wallet creation fix in progress. Sub-tasks 1-6 complete (createWallet function, secure randomness, BIP-39 mnemonic, secp256k1 key derivation, EVM address computation, wallet storage with 9-address limit). Remaining: return full credentials once, secure listWallets, and improve error handling.",
+  "architectural_notes": [
+    "Wallet storage enforces a max of 9 addresses per user principal; only the address is stored (no private keys or seed phrases).",
+    "createWallet uses Random.blob() for entropy, BIP-39 mnemonic generation, and secp256k1 key derivation to produce EVM 0x addresses."
+  ],
+  "known_issues": [],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-update-error-handling-in-createwallet-so-that-all-failure-cases-return-a-structured-human-readable-error-variant-instead-of-propagating-raw-trap-messages-the-frontend-s-walleterrors-ts-utility-should-be-able-to-map-every-returned-error-variant-to-a-clean-user-facing-string-eliminating-the-generic-failed-to-create-wallet-message",
+      "title": "Update error handling in `createWallet` so that all failure cases return a structured, human-readable error variant instead of propagating raw trap messages. The frontend's `walletErrors.ts` utility should be able to map every returned error variant to a clean user-facing string, eliminating the generic 'Failed to create wallet' message.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Return full wallet credentials (address, privateKey, recoveryPhrase, chain) exactly once from createWallet",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Ensure listWallets does not return private keys or seed phrases",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Update error handling so the frontend receives a clean result instead of 'Failed to create wallet'",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "In the `createWallet` backend function, ensure the return value includes the full wallet credentials — `address`, `privateKey`, `recoveryPhrase`, and `chain` — exactly once upon successful creation. The private key and recovery phrase must only be present in this single response and must never be persisted in stable storage.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Ensure the `listWallets` backend function returns only wallet addresses (and any non-sensitive metadata such as `chain`). It must never return `privateKey` or `recoveryPhrase` fields.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "EPIQ Life",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

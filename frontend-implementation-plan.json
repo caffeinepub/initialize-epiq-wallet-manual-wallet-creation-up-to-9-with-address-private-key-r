@@ -1,0 +1,33 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Complete wallet creation: return credentials once, secure listWallets, improve error handling",
+  "requirements": [
+    {
+      "id": "REQ-3",
+      "summary": "Update frontend error handling to display structured, user-friendly wallet creation error messages instead of generic 'Failed to create wallet' text",
+      "acceptanceCriteria": [
+        "The `walletErrors.ts` utility maps every backend error variant (#randomnessError, #limitReached, #notAuthenticated, #internalError) to a specific, user-friendly message.",
+        "The `EpiqWalletsPanel` component displays the mapped error message and never shows 'Failed to create wallet' to the user.",
+        "All wallet creation failures show actionable, human-readable error text."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/walletErrors.ts",
+          "operation": "modify",
+          "description": "Extend the error mapping logic to handle new structured backend error variants (#randomnessError, #limitReached, #notAuthenticated, #internalError) returned by createWallet. Map each variant to a specific, user-friendly message string (e.g., 'Unable to generate secure randomness', 'You have reached the 9-wallet limit', 'Authentication required to create a wallet', 'An internal error occurred')."
+        },
+        {
+          "path": "frontend/src/components/EpiqWalletsPanel.tsx",
+          "operation": "modify",
+          "description": "Update the wallet creation error handling to use the enhanced walletErrors utility. When createWallet returns an error variant, pass it to the mapping function and display the resulting user-friendly message in the UI. Remove any fallback to 'Failed to create wallet'. Ensure error state is cleared when the user retries or closes the error display."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Update the createWallet mutation to properly extract and forward structured error variants from the backend WalletOperationResult_1 response type. Ensure the mutation error object includes the specific error variant (e.g., #randomnessError) so downstream components can map it to a user-friendly message."
+        }
+      ]
+    }
+  ]
+}

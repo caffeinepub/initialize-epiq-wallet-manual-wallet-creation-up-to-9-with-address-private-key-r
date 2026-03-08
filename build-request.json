@@ -1,0 +1,76 @@
+{
+  "kind": "build_request",
+  "title": "Complete wallet creation: return credentials once, secure listWallets, improve error handling",
+  "projectName": "EPIQ Life",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "In the `createWallet` backend function, ensure the return value includes the full wallet credentials — `address`, `privateKey`, `recoveryPhrase`, and `chain` — exactly once upon successful creation. The private key and recovery phrase must only be present in this single response and must never be persisted in stable storage.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Return the full credentials (address, privateKey, recoveryPhrase, chain) exactly once."
+        ]
+      },
+      "acceptanceCriteria": [
+        "The `createWallet` function returns a record containing `address`, `privateKey`, `recoveryPhrase`, and `chain` fields on success.",
+        "The private key and recovery phrase are not stored in any stable variable or map.",
+        "Calling `createWallet` a second time does not expose the credentials of a previously created wallet."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Ensure the `listWallets` backend function returns only wallet addresses (and any non-sensitive metadata such as `chain`). It must never return `privateKey` or `recoveryPhrase` fields.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Ensure listWallets does not return private keys or seed phrases."
+        ]
+      },
+      "acceptanceCriteria": [
+        "The `listWallets` return type does not include a `privateKey` field.",
+        "The `listWallets` return type does not include a `recoveryPhrase` field.",
+        "Each wallet entry returned by `listWallets` contains at minimum the wallet `address` and `chain`."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Update error handling in `createWallet` so that all failure cases return a structured, human-readable error variant instead of propagating raw trap messages. The frontend's `walletErrors.ts` utility should be able to map every returned error variant to a clean user-facing string, eliminating the generic 'Failed to create wallet' message.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Update error handling so the frontend gets a clean result instead of \"Failed to create wallet\"."
+        ]
+      },
+      "acceptanceCriteria": [
+        "The `createWallet` backend function returns typed error variants (e.g., `#randomnessError`, `#limitReached`, `#notAuthenticated`, `#internalError`) rather than trapping or returning an untyped string.",
+        "The frontend `walletErrors.ts` maps every new error variant to a specific, user-friendly message.",
+        "The `EpiqWalletsPanel` component displays the mapped error message and never shows 'Failed to create wallet' to the user."
+      ]
+    }
+  ],
+  "constraints": [
+    "Private keys and recovery phrases must never be written to stable storage or any persistent backend variable.",
+    "Do not change the wallet address storage schema or the 9-wallet limit already implemented.",
+    "Do not modify any file listed under frontend.immutablePaths."
+  ],
+  "nonGoals": [
+    "Re-implementing sub-tasks 1–6 (randomness, mnemonic generation, key derivation, address computation, storage, limit enforcement) — those are already complete.",
+    "Adding new UI wallet features beyond surfacing the credentials and error messages.",
+    "Changing the authentication or session management logic."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}
